@@ -3,12 +3,11 @@ const cors = require('cors');
 const { MongoClient } = require('mongodb');
 
 const app = express();
-const PORT = 3000;
-
+const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const uri = "mongodb://Niharika:Niharika185@ac-tflpbjv-shard-00-00.vio0hbn.mongodb.net:27017,ac-tflpbjv-shard-00-01.vio0hbn.mongodb.net:27017,ac-tflpbjv-shard-00-02.vio0hbn.mongodb.net:27017/?ssl=true&replicaSet=atlas-xql9it-shard-0&authSource=admin&appName=Cluster0";
+const uri = process.env.MONGODB_URI || "mongodb://Niharika:Niharika185@ac-tflpbjv-shard-00-00.vio0hbn.mongodb.net:27017,ac-tflpbjv-shard-00-01.vio0hbn.mongodb.net:27017,ac-tflpbjv-shard-00-02.vio0hbn.mongodb.net:27017/?ssl=true&replicaSet=atlas-xql9it-shard-0&authSource=admin&appName=Cluster0";
 const client = new MongoClient(uri);
 
 async function connectDB() {
