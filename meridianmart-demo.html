@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeridianMart — secured by Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F8FA; --paper-2:#FFFFFF; --ink:#151A23; --ink-dim:#5B6472;
+    --line:#E4E7EC; --line-strong:#D2D6DE;
+    --green:#1F9D6A; --green-dim:#E6F5EE;
+    --dark:#0B1220; --dark-2:#101A2E; --dark-3:#16223A;
+    --cyan:#4CE0D2; --cyan-dim:rgba(76,224,210,0.14);
+    --amber:#F5A623; --coral:#FF6B6B; --coral-dim:rgba(255,107,107,0.14);
+    --paper-dim-dark:#AFB7C4; --slate:#7C8797; --dline:rgba(237,238,240,0.1); --dline-strong:rgba(237,238,240,0.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'IBM Plex Sans',sans-serif;background:var(--paper);color:var(--ink);line-height:1.5;}
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;letter-spacing:-0.01em;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 28px;}
+
+  .howto{
+    background:var(--dark);color:var(--paper-dim-dark);
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;
+    padding:11px 0;text-align:center;
+  }
+  .howto b{color:var(--cyan);}
+
+  header{background:var(--paper-2);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30;}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0;}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:19px;}
+  .logo-dot{width:9px;height:9px;border-radius:50%;background:var(--green);}
+  .nav-mid{display:flex;gap:30px;font-size:14px;color:var(--ink-dim);}
+  @media(max-width:760px){.nav-mid{display:none;}}
+  .nav-right{display:flex;align-items:center;gap:14px;}
+  .secured-badge{
+    display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;
+    font-size:11px;color:var(--slate);border:1px solid var(--line-strong);padding:5px 10px;border-radius:100px;
+  }
+  .secured-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);}
+  .btn{border:none;border-radius:8px;font-weight:600;font-size:14.5px;padding:10px 20px;transition:transform .15s, box-shadow .15s;}
+  .btn:active{transform:scale(0.97);}
+  .btn-signin{background:var(--ink);color:#fff;}
+  .btn-signin:hover{box-shadow:0 8px 20px rgba(21,26,35,0.2);}
+  .account-pill{
+    display:none;align-items:center;gap:10px;background:var(--green-dim);
+    border:1px solid rgba(31,157,106,0.25);padding:6px 14px 6px 8px;border-radius:100px;font-size:13.5px;
+  }
+  .account-pill.show{display:flex;}
+  .avatar{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+  .signout-link{color:var(--ink-dim);font-size:12.5px;text-decoration:underline;}
+
+  .hero{padding:56px 0 40px;}
+  .hero h1{font-size:clamp(28px,4vw,42px);font-weight:700;margin-bottom:12px;}
+  .hero p{color:var(--ink-dim);font-size:16px;max-width:520px;}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:8px 0 70px;}
+  @media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:480px){.grid{grid-template-columns:1fr;}}
+  .card{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:box-shadow .2s, transform .2s;}
+  .card:hover{box-shadow:0 16px 32px -12px rgba(21,26,35,0.12);transform:translateY(-2px);}
+  .card-art{height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;}
+  .card-body{padding:16px 18px 18px;}
+  .card-body h3{font-size:15px;font-weight:600;margin-bottom:4px;}
+  .card-body .price{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink-dim);margin-bottom:12px;}
+  .add-btn{width:100%;background:var(--ink);color:#fff;border-radius:7px;padding:9px 0;font-size:13.5px;font-weight:600;}
+  .add-btn:hover{background:#000;}
+
+  .log-section{padding:0 0 90px;}
+  .log-section h2{font-size:20px;font-weight:600;margin-bottom:16px;}
+  .log-empty{color:var(--slate);font-size:13.5px;border:1px dashed var(--line-strong);border-radius:10px;padding:22px;text-align:center;}
+  .log-row{
+    display:grid;grid-template-columns:100px 1fr 90px 130px;gap:12px;align-items:center;
+    padding:12px 14px;border-radius:8px;background:var(--paper-2);border:1px solid var(--line);margin-bottom:8px;
+    font-size:13px;
+  }
+  @media(max-width:600px){.log-row{grid-template-columns:1fr;}}
+  .log-row .t{color:var(--slate);font-family:'IBM Plex Mono',monospace;font-size:11.5px;}
+  .log-badge{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 9px;border-radius:5px;width:fit-content;}
+  .log-badge.allow{background:var(--green-dim);color:var(--green);}
+  .log-badge.deny{background:var(--coral-dim);color:#D63C3C;}
+
+  .overlay{
+    position:fixed;inset:0;background:rgba(6,10,18,0.72);backdrop-filter:blur(4px);
+    display:none;align-items:center;justify-content:center;z-index:100;padding:20px;
+  }
+  .overlay.show{display:flex;}
+  .panel{
+    background:var(--dark-2);border:1px solid var(--dline-strong);border-radius:16px;
+    width:100%;max-width:420px;padding:26px;color:#EDEEF0;
+    box-shadow:0 40px 100px -20px rgba(0,0,0,0.6);
+    max-height:92vh;overflow-y:auto;
+  }
+  .panel-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.06em;color:var(--cyan);text-transform:uppercase;margin-bottom:6px;}
+  .panel h3{font-size:19px;font-weight:600;margin-bottom:16px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--slate);margin-bottom:6px;}
+  .field input{
+    width:100%;background:var(--dark);border:1px solid var(--dline-strong);border-radius:8px;
+    padding:11px 12px;color:#EDEEF0;font-family:inherit;font-size:14px;
+  }
+  .field input:focus{outline:none;border-color:var(--cyan);}
+  .panel .btn-full{width:100%;background:var(--cyan);color:var(--dark);border:none;border-radius:8px;padding:12px 0;font-weight:600;font-size:14.5px;margin-top:6px;}
+  .panel .btn-full:hover{box-shadow:0 8px 20px rgba(76,224,210,0.25);}
+  .panel-note{font-size:12px;color:var(--slate);margin-top:14px;text-align:center;}
+  .close-x{position:absolute;top:16px;right:20px;background:none;border:none;color:var(--slate);font-size:20px;}
+
+  .vstep{
+    display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--dline);
+    opacity:0;transform:translateX(-6px);
+  }
+  .vstep.show{animation:vin .4s ease forwards;}
+  @keyframes vin{to{opacity:1;transform:translateX(0);}}
+  .vstep:last-child{border-bottom:none;}
+  .vchk{width:18px;height:18px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;background:var(--cyan-dim);color:var(--cyan);}
+  .vstep.risky .vchk{background:var(--coral-dim);color:var(--coral);}
+  .vtext{flex:1;font-size:13px;color:var(--paper-dim-dark);}
+  .vtext b{color:#fff;}
+  .vval{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--slate);}
+
+  .score-wrap{display:flex;align-items:center;gap:16px;margin-top:18px;padding-top:18px;border-top:1px solid var(--dline-strong);}
+  .ring{width:64px;height:64px;position:relative;flex-shrink:0;}
+  .ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .ring .bg{fill:none;stroke:var(--dline-strong);stroke-width:6;}
+  .ring .fg{fill:none;stroke:var(--cyan);stroke-width:6;stroke-linecap:round;stroke-dasharray:163.4;transition:stroke-dashoffset .8s ease, stroke .4s;}
+  .ring .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:14px;}
+  .verdict{font-size:14.5px;font-weight:600;margin-bottom:2px;}
+  .verdict.low{color:var(--cyan);}
+  .verdict.high{color:var(--coral);}
+  .verdict-sub{font-size:12px;color:var(--slate);}
+
+  .capture-toggle{display:flex;gap:6px;margin-bottom:10px;background:var(--dark);border:1px solid var(--dline-strong);border-radius:8px;padding:3px;}
+  .ctab{flex:1;border:none;background:none;color:var(--slate);font-family:inherit;font-size:11.5px;font-weight:500;padding:6px 0;border-radius:6px;}
+  .ctab.active{background:var(--cyan-dim);color:var(--cyan);}
+  .photo-frame{width:100%;aspect-ratio:4/3;border-radius:10px;background:#000;border:1px solid var(--dline-strong);
+    display:flex;align-items:center;justify-content:center;margin-bottom:12px;position:relative;overflow:hidden;}
+  .photo-frame video, .photo-frame img{width:100%;height:100%;object-fit:cover;}
+  .photo-frame .cam-off{color:#3C4A63;font-size:12px;text-align:center;padding:10px;font-family:'IBM Plex Mono',monospace;}
+  .photo-tag{position:absolute;top:9px;left:9px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--coral);
+    background:rgba(0,0,0,0.55);padding:4px 9px;border-radius:100px;display:flex;align-items:center;gap:5px;}
+  .rec-dot{width:6px;height:6px;border-radius:50%;background:var(--coral);animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+  .pm-list{margin-bottom:14px;}
+  .pm-row{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--dline);font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .pm-row:first-child{border-top:none;}
+  .pm-row .l{color:var(--slate);}
+  .pm-row .v{color:var(--paper-dim-dark);}
+  .pm-row .v.flag{color:var(--coral);}
+  .pm-row .v.strong{color:#fff;font-weight:500;}
+  .decision-btns{display:flex;gap:10px;}
+  .decision-btns button{flex:1;border-radius:9px;padding:12px 0;font-weight:600;font-size:14px;border:none;}
+  .btn-deny{background:var(--coral-dim);color:var(--coral);border:1px solid rgba(255,107,107,0.3) !important;}
+  .btn-allow{background:var(--cyan);color:var(--dark);}
+
+  .waiting-wrap{text-align:center;padding:20px 0 6px;}
+  .waiting-spinner{width:44px;height:44px;border-radius:50%;border:3px solid var(--dline-strong);border-top-color:var(--cyan);
+    margin:0 auto 18px;animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .waiting-wrap p{font-size:13.5px;color:var(--paper-dim-dark);margin-bottom:18px;}
+  .btn-open-approver{background:var(--cyan);color:var(--dark);border:none;border-radius:8px;padding:11px 22px;font-weight:600;font-size:14px;}
+
+  .result-wrap{text-align:center;padding:26px 0;}
+  .result-ring{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 14px;}
+  .result-ring.allowed{background:var(--cyan-dim);color:var(--cyan);}
+  .result-ring.denied{background:var(--coral-dim);color:var(--coral);}
+  .result-wrap h3{margin-bottom:6px;}
+  .result-wrap p{color:var(--slate);font-size:13px;margin-bottom:18px;}
+  .btn-continue{background:var(--cyan);color:var(--dark);border:none;border-radius:8px;padding:11px 22px;font-weight:600;font-size:14px;}
+
+  footer{border-top:1px solid var(--line);padding:26px 0;text-align:center;color:var(--slate);font-size:12.5px;}
+</style>
+</head>
+<body>
+
+<div class="howto"><b>How to test:</b>&nbsp; make sure your backend is running (node server.js in your terminal, showing localhost:3000) → click "Sign in" → use owner@meridianmart.com / Meridian@123 → allow camera and location when asked.</div>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <div class="logo"><span class="logo-dot"></span>MeridianMart</div>
+      <div class="nav-mid"><span>Shop</span><span>Deals</span><span>Orders</span></div>
+      <div class="nav-right">
+        <span class="secured-badge"><span class="dot"></span>Secured by Cadence</span>
+        <button class="btn btn-signin" id="navSignInBtn">Sign in</button>
+        <div class="account-pill" id="accountPill">
+          <span class="avatar">Y</span>
+          <span>You</span>
+          <span class="signout-link" id="signOutLink">Sign out</span>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>Everyday things, for everyday people.</h1>
+    <p>A demo storefront — the products aren't real, but the login on this page is running an actual risk check, live, in your browser.</p>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="grid">
+    <div class="card"><div class="card-art" style="background:#FDF3E7;">🎧</div><div class="card-body"><h3>Studio Headphones</h3><div class="price">$89.00</div><button class="add-btn">Add to cart</button></div></div>
+    <div class="card"><div class="card-art" style="background:#EAF3FD;">⌚</div><div class="card-body"><h3>Fitness Watch</h3><div class="price">$142.00</div><button class="add-btn">Add to cart</button></div></div>
+    <div class="card"><div class="card-art" style="background:#F1EEFB;">🎒</div><div class="card-body"><h3>Travel Backpack</h3><div class="price">$64.00</div><button class="add-btn">Add to cart</button></div></div>
+    <div class="card"><div class="card-art" style="background:#EAFBF1;">🪴</div><div class="card-body"><h3>Desk Plant</h3><div class="price">$21.00</div><button class="add-btn">Add to cart</button></div></div>
+    <div class="card"><div class="card-art" style="background:#FDEDEA;">☕</div><div class="card-body"><h3>Pour-Over Kettle</h3><div class="price">$47.00</div><button class="add-btn">Add to cart</button></div></div>
+    <div class="card"><div class="card-art" style="background:#EEF4FD;">📷</div><div class="card-body"><h3>Instant Camera</h3><div class="price">$76.00</div><button class="add-btn">Add to cart</button></div></div>
+  </div>
+</section>
+
+<section class="wrap log-section">
+  <h2>Login activity on your account</h2>
+  <div id="logList"><div class="log-empty">No login attempts yet this session. Try signing in above.</div></div>
+</section>
+
+<footer>MeridianMart is a demo store built to test the Cadence login flow — nothing here is a real product or account.</footer>
+
+<div class="overlay" id="signinOverlay">
+  <div class="panel" style="position:relative;">
+    <button class="close-x" id="closeSignin">✕</button>
+    <div class="panel-eyebrow">MeridianMart account</div>
+    <h3>Sign in</h3>
+    <div class="field"><label>Email</label><input type="email" id="emailInput" placeholder="you@example.com"></div>
+    <div class="field"><label>Password</label><input type="password" id="passInput" placeholder="••••••••"></div>
+    <div id="signinError" style="display:none;color:var(--coral);font-size:12.5px;margin-bottom:12px;"></div>
+    <button class="btn-full" id="submitSignin">Continue</button>
+  </div>
+</div>
+
+<div class="overlay" id="verifyOverlay">
+  <div class="panel">
+    <div class="panel-eyebrow">Cadence · live check</div>
+    <h3>Verifying this login</h3>
+    <div id="vsteps"></div>
+    <div class="score-wrap" id="scoreWrap" style="display:none;">
+      <div class="ring"><svg viewBox="0 0 68 68"><circle class="bg" cx="34" cy="34" r="26"/><circle class="fg" id="vringArc" cx="34" cy="34" r="26" stroke-dashoffset="163.4"/></svg><div class="num mono" id="vringNum">—</div></div>
+      <div><div class="verdict" id="vVerdict"></div><div class="verdict-sub" id="vVerdictSub"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="waitOverlay">
+  <div class="panel">
+    <div class="panel-eyebrow">Cadence · high risk</div>
+    <h3>This login needs your approval</h3>
+    <div class="waiting-wrap">
+      <div class="waiting-spinner"></div>
+      <p>A request was just sent to your phone. Opening it now…</p>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="approverOverlay">
+  <div class="panel">
+    <div class="panel-eyebrow">Your phone · Cadence app</div>
+    <h3>Login attempt on MeridianMart</h3>
+
+    <div class="capture-toggle">
+      <button class="ctab active" id="capTabPhoto">Photo</button>
+      <button class="ctab" id="capTabVideo">Live video</button>
+    </div>
+    <div class="photo-frame" id="photoFrame">
+      <span class="photo-tag" id="capTag"><span class="rec-dot"></span>LIVE</span>
+      <div class="cam-off" id="camOffMsg">Camera preview will<br>appear here</div>
+    </div>
+
+    <div class="pm-list" id="pmList"></div>
+
+    <div class="decision-btns">
+      <button class="btn-deny" id="denyBtn">Deny</button>
+      <button class="btn-allow" id="allowBtn">Allow</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="resultOverlay">
+  <div class="panel">
+    <div class="result-wrap">
+      <div class="result-ring" id="resultRing"></div>
+      <h3 id="resultTitle"></h3>
+      <p id="resultSub"></p>
+      <button class="btn-continue" id="resultContinueBtn">Back to store</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const state = { deviceKnown:false, loggedIn:false, log:[], mediaStream:null, hiddenVideo:null, capturedPhoto:null, captureMode:'photo', locationText:'detecting…', ipText:'detecting…', locationDenied:false };
+
+  function getDeviceInfo(){
+    const ua = navigator.userAgent;
+    let browser = 'Unknown browser';
+    if(/Edg\//.test(ua)) browser = 'Edge';
+    else if(/OPR\//.test(ua)) browser = 'Opera';
+    else if(/Chrome\//.test(ua) && !/Edg\//.test(ua)) browser = 'Chrome';
+    else if(/Firefox\//.test(ua)) browser = 'Firefox';
+    else if(/Safari\//.test(ua) && !/Chrome\//.test(ua)) browser = 'Safari';
+    let os = 'Unknown OS';
+    if(/Windows NT/.test(ua)) os = 'Windows';
+    else if(/Mac OS X/.test(ua)) os = 'macOS';
+    else if(/Android/.test(ua)) os = 'Android';
+    else if(/Linux/.test(ua)) os = 'Linux';
+    else if(/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
+    return `${browser} on ${os}`;
+  }
+  state.deviceText = getDeviceInfo();
+
+  function fetchIP(elId){
+    fetch('https://api.ipify.org?format=json')
+      .then(r => r.json())
+      .then(data => {
+        state.ipText = data.ip;
+        const el = document.getElementById(elId);
+        if(el) el.textContent = data.ip;
+      })
+      .catch(() => {
+        state.ipText = 'unavailable';
+        const el = document.getElementById(elId);
+        if(el) el.textContent = 'unavailable';
+      });
+  }
+
+  const $ = id => document.getElementById(id);
+
+  function openOverlay(id){ $(id).classList.add('show'); }
+  function closeOverlay(id){ $(id).classList.remove('show'); }
+  function closeAll(){ ['signinOverlay','verifyOverlay','waitOverlay','approverOverlay','resultOverlay'].forEach(closeOverlay); }
+
+  $('navSignInBtn').addEventListener('click', () => { openOverlay('signinOverlay'); });
+  $('closeSignin').addEventListener('click', () => closeOverlay('signinOverlay'));
+  $('signOutLink').addEventListener('click', () => {
+    state.loggedIn = false;
+    $('accountPill').classList.remove('show');
+    $('navSignInBtn').style.display = 'inline-block';
+    stopCamera();
+  });
+
+  const VALID_EMAIL = 'owner@meridianmart.com';
+  const VALID_PASSWORD = 'Meridian@123';
+
+  $('submitSignin').addEventListener('click', () => {
+    const email = $('emailInput').value.trim();
+    const password = $('passInput').value;
+    const errorEl = $('signinError');
+    errorEl.style.display = 'none';
+
+    if(!email || !password){
+      $('emailInput').style.borderColor = 'var(--coral, #FF6B6B)';
+      return;
+    }
+    if(email !== VALID_EMAIL || password !== VALID_PASSWORD){
+      errorEl.textContent = 'Incorrect email or password.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    closeOverlay('signinOverlay');
+    requestCameraAndVerify();
+  });
+
+  function requestCameraAndVerify(){
+    navigator.mediaDevices.getUserMedia({video:true})
+      .then(stream => {
+        state.mediaStream = stream;
+        requestLocationAndVerify();
+      })
+      .catch(() => {
+        denyForCameraBlock();
+      });
+  }
+
+  function requestLocationAndVerify(){
+    if(!navigator.geolocation){
+      state.locationText = 'not supported by this browser';
+      runVerification();
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const {latitude:lat, longitude:lon} = pos.coords;
+        state.locationText = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+        fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+          .then(r => r.json())
+          .then(data => {
+            const place = [data.city || data.locality, data.countryName].filter(Boolean).join(', ');
+            if(place){
+              state.locationText = place;
+              const el = document.getElementById('vval-2');
+              if(el) el.textContent = place;
+            }
+          })
+          .catch(() => {});
+        runVerification();
+      },
+      () => {
+        denyForLocationBlock();
+      },
+      {timeout:20000}
+    );
+  }
+
+  function denyForCameraBlock(){
+    logAttempt(0, 'Denied — camera declined');
+    $('resultRing').className = 'result-ring denied';
+    $('resultRing').textContent = '✕';
+    $('resultTitle').textContent = 'Login denied';
+    $('resultSub').textContent = 'Camera access is required to sign in to this account.';
+    openOverlay('resultOverlay');
+  }
+
+  function denyForLocationBlock(){
+    stopCamera();
+    closeAll();
+    logAttempt(0, 'Denied — location declined');
+    $('resultRing').className = 'result-ring denied';
+    $('resultRing').textContent = '✕';
+    $('resultTitle').textContent = 'Login denied';
+    $('resultSub').textContent = 'Location access is required to sign in to this account.';
+    openOverlay('resultOverlay');
+  }
+
+  function runVerification(){
+    openOverlay('verifyOverlay');
+    const vsteps = $('vsteps'); vsteps.innerHTML=''; $('scoreWrap').style.display='none';
+
+    const risky = !state.deviceKnown;
+    const steps = [
+      {label:"Device", val: state.deviceText, bad:risky},
+      {label:"Network", val: "resolving IP…", bad:risky},
+      {label:"Location", val: state.locationText, bad:false},
+      {label:"Time of day", val: risky ? "outside typical window" : "typical for this account", bad:risky},
+      {label:"Behavior baseline", val: risky ? "no baseline yet" : "matches history", bad:risky},
+    ];
+
+    steps.forEach((s,i) => {
+      const row = document.createElement('div');
+      row.className = 'vstep' + (s.bad ? ' risky' : '');
+      row.innerHTML = `<span class="vchk">${s.bad?'!':'✓'}</span><span class="vtext"><b>${s.label}</b></span><span class="vval mono" id="vval-${i}">${s.val}</span>`;
+      vsteps.appendChild(row);
+      setTimeout(()=> row.classList.add('show'), 280*(i+1));
+    });
+
+    fetchIP('vval-1');
+
+    const revealDelay = 280*(steps.length+1) + 300;
+    setTimeout(async () => {
+      let score = 50;
+      try{
+        const res = await fetch('http://localhost:3000/verify-login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ email: $('emailInput').value.trim() || 'unknown@meridianmart.com', deviceKnown: state.deviceKnown })
+        });
+        const data = await res.json();
+        score = data.riskScore;
+      }catch(err){
+        console.error('Could not reach Cadence backend, is it running on localhost:3000?', err);
+        score = risky ? 78 : 8;
+      }
+
+      const CIRC = 163.4;
+      const arc = $('vringArc');
+      arc.style.stroke = score < 40 ? '#4CE0D2' : (score < 70 ? '#F5A623' : '#FF6B6B');
+      arc.style.strokeDashoffset = CIRC * (1 - score/100);
+      $('vringNum').textContent = score;
+      $('scoreWrap').style.display = 'flex';
+      $('vVerdict').textContent = score < 40 ? 'Low risk' : 'High risk';
+      $('vVerdict').className = 'verdict ' + (score < 40 ? 'low' : 'high');
+      $('vVerdictSub').textContent = score < 40 ? 'Matches this account\'s usual pattern.' : 'Doesn\'t match this account\'s history.';
+
+      setTimeout(() => {
+        closeOverlay('verifyOverlay');
+        if(score < 40){
+          logAttempt(score, 'Auto-approved');
+          stopCamera();
+          completeLogin();
+        } else {
+          openOverlay('waitOverlay');
+          setTimeout(() => {
+            closeOverlay('waitOverlay');
+            buildApproverCard();
+            openOverlay('approverOverlay');
+            renderCapture();
+          }, 1400);
+        }
+      }, 1400);
+    }, revealDelay);
+  }
+
+  function buildApproverCard(){
+    const risky = !state.deviceKnown;
+    $('pmList').innerHTML = `
+      <div class="pm-row"><span class="l">Device</span><span class="v ${risky ? 'flag':''}">${state.deviceText}</span></div>
+      <div class="pm-row"><span class="l">Location</span><span class="v ${state.locationText.includes('denied') ? 'flag':''}">${state.locationText}</span></div>
+      <div class="pm-row"><span class="l">Network</span><span class="v ${risky ? 'flag':''}">${state.ipText}</span></div>
+      <div class="pm-row"><span class="l">Time</span><span class="v">${new Date().toLocaleTimeString()}</span></div>
+      <div class="pm-row"><span class="l">Attempts</span><span class="v">1st try this session</span></div>
+      <div class="pm-row"><span class="l">Risk score</span><span class="v strong">${68 + Math.floor(Math.random()*20)} / 100</span></div>
+    `;
+  }
+
+  function renderCapture(){
+    const frame = $('photoFrame');
+    if(!state.mediaStream) return;
+
+    frame.innerHTML = '';
+    const video = document.createElement('video');
+    video.autoplay = true; video.playsInline = true; video.muted = true;
+    video.srcObject = state.mediaStream;
+    frame.appendChild(video);
+
+    if(state.captureMode === 'video'){
+      const tag = document.createElement('span'); tag.className='photo-tag';
+      tag.innerHTML = '<span class="rec-dot"></span>LIVE VIDEO';
+      frame.appendChild(tag);
+    } else {
+      const capture = () => {
+        if(video.readyState >= 2 && video.videoWidth){
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+          canvas.getContext('2d').drawImage(video, 0, 0);
+          frame.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = canvas.toDataURL('image/png');
+          frame.appendChild(img);
+          const tag = document.createElement('span'); tag.className='photo-tag';
+          tag.innerHTML = '<span class="rec-dot"></span>PHOTO';
+          frame.appendChild(tag);
+        } else {
+          setTimeout(capture, 150);
+        }
+      };
+      setTimeout(capture, 500);
+    }
+  }
+
+  function stopCamera(){
+    if(state.mediaStream){ state.mediaStream.getTracks().forEach(t=>t.stop()); state.mediaStream=null; }
+  }
+
+  $('allowBtn').addEventListener('click', () => resolve(true));
+  $('denyBtn').addEventListener('click', () => resolve(false));
+
+  function resolve(allowed){
+    stopCamera();
+    closeOverlay('approverOverlay');
+    const score = 68 + Math.floor(Math.random()*20);
+    logAttempt(score, allowed ? 'Approved by you' : 'Denied by you');
+
+    $('resultRing').className = 'result-ring ' + (allowed ? 'allowed' : 'denied');
+    $('resultRing').textContent = allowed ? '✓' : '✕';
+    $('resultTitle').textContent = allowed ? 'Login allowed' : 'Login denied';
+    $('resultSub').textContent = allowed ? 'You approved it — signing you in.' : 'You denied it — no access granted.';
+    openOverlay('resultOverlay');
+  }
+
+  $('resultContinueBtn').addEventListener('click', () => {
+    closeOverlay('resultOverlay');
+    const lastLog = state.log[state.log.length-1];
+    if(lastLog && lastLog.decision.includes('Approved') || lastLog && lastLog.decision.includes('Auto-approved')){
+      completeLogin();
+    }
+  });
+
+  function completeLogin(){
+    state.loggedIn = true;
+    $('accountPill').classList.add('show');
+    $('navSignInBtn').style.display = 'none';
+  }
+
+  function logAttempt(score, decision){
+    state.log.push({time:new Date().toLocaleTimeString(), score, decision});
+    renderLog();
+  }
+  function renderLog(){
+    const el = $('logList');
+    if(state.log.length===0){ el.innerHTML = '<div class="log-empty">No login attempts yet this session. Try signing in above.</div>'; return; }
+    el.innerHTML = state.log.slice().reverse().map(e => `
+      <div class="log-row">
+        <span class="t">${e.time}</span>
+        <span>Login attempt · risk score ${e.score}</span>
+        <span>${e.score < 40 ? 'Low' : 'High'}</span>
+        <span class="log-badge ${e.decision.toLowerCase().includes('den') ? 'deny':'allow'}">${e.decision}</span>
+      </div>
+    `).join('');
+  }
+
+  $('capTabPhoto').addEventListener('click', () => setCapMode('photo'));
+  $('capTabVideo').addEventListener('click', () => setCapMode('video'));
+  function setCapMode(mode){
+    state.captureMode = mode;
+    $('capTabPhoto').classList.toggle('active', mode==='photo');
+    $('capTabVideo').classList.toggle('active', mode==='video');
+    renderCapture();
+  }
+</script>
+</body>
+</html>
