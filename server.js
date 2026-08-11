@@ -47,15 +47,30 @@ app.post('/verify-login', async (req, res) => {
 // Website creates a pending approval request (high-risk logins)
 app.post('/login-attempt', async (req, res) => {
   try {
-    const { email, deviceText, locationText, ipText, riskScore, photo } = req.body;
+    const { email, deviceText, locationText, ipText, riskScore, photo, video } = req.body;
     const db = client.db("cadence");
     const result = await db.collection("approvalRequests").insertOne({
-      email, deviceText, locationText, ipText, riskScore, photo,
+      email, deviceText, locationText, ipText, riskScore, photo, video,
       status: 'pending',
       decision: null,
       createdAt: new Date()
     });
     res.json({ id: result.insertedId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Website periodically sends longer video clips while waiting for a decision
+app.post('/update-video/:id', async (req, res) => {
+  try {
+    const { video } = req.body;
+    const db = client.db("cadence");
+    await db.collection("approvalRequests").updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: { video, videoUpdatedAt: new Date() } }
+    );
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
