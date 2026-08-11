@@ -253,7 +253,7 @@
     <h3>This login needs your approval</h3>
     <div class="waiting-wrap">
       <div class="waiting-spinner"></div>
-      <p>A request was just sent to your phone. Opening it now…</p>
+      <p>Sent to your Cadence app. Check your phone to approve or deny this login.</p>
     </div>
   </div>
 </div>
@@ -293,6 +293,8 @@
 </div>
 
 <script>
+  const API_BASE = 'https://cadence-backend-galh.onrender.com';
+
   const state = { deviceKnown:false, loggedIn:false, log:[], mediaStream:null, hiddenVideo:null, capturedPhoto:null, captureMode:'photo', locationText:'detecting…', ipText:'detecting…', locationDenied:false };
 
   function getDeviceInfo(){
@@ -342,9 +344,8 @@
     $('navSignInBtn').style.display = 'inline-block';
     stopCamera();
   });
-
-  const VALID_EMAIL = 'owner@meridianmart.com';
-  const VALID_PASSWORD = 'Meridian@123';
+  const VALID_EMAIL = '324103310185@gvpce.ac.in';
+  const VALID_PASSWORD = 'Niharika@185';
 
   $('submitSignin').addEventListener('click', () => {
     const email = $('emailInput').value.trim();
@@ -453,7 +454,7 @@
     setTimeout(async () => {
       let score = 50;
       try{
-        const res = await fetch('http://localhost:3000/verify-login', {
+        const res = await fetch(`${API_BASE}/verify-login`, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ email: $('emailInput').value.trim() || 'unknown@meridianmart.com', deviceKnown: state.deviceKnown })
@@ -482,16 +483,121 @@
           stopCamera();
           completeLogin();
         } else {
-          openOverlay('waitOverlay');
-          setTimeout(() => {
-            closeOverlay('waitOverlay');
-            buildApproverCard();
-            openOverlay('approverOverlay');
-            renderCapture();
-          }, 1400);
+          sendForPhoneApproval(score);
         }
       }, 1400);
     }, revealDelay);
+  }
+
+  function capturePhotoBase64(){
+    return new Promise((resolve) => {
+      if(!state.mediaStream){ resolve(null); return; }
+      const video = document.createElement('video');
+      video.autoplay = true; video.playsInline = true; video.muted = true;
+      video.style.cssText = 'position:fixed; bottom:12px; right:12px; width:120px; height:90px; z-index:99999; border-radius:8px;';
+      video.srcObject = state.mediaStream;
+      document.body.appendChild(video);
+      video.play().catch(() => {});
+
+      const cleanup = () => { if(video.parentNode) video.parentNode.removeChild(video); };
+
+      function isMostlyBlack(canvas){
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        let total = 0, count = 0;
+        const stepX = Math.max(1, Math.floor(w / 20));
+        const stepY = Math.max(1, Math.floor(h / 20));
+        for(let y = 0; y < h; y += stepY){
+          for(let x = 0; x < w; x += stepX){
+            const d = ctx.getImageData(x, y, 1, 1).data;
+            total += (d[0] + d[1] + d[2]) / 3;
+            count++;
+          }
+        }
+        return (total / count) < 8;
+      }
+
+      let tries = 0;
+      const maxTries = 30;
+      function tryCapture(){
+        tries++;
+        if(video.readyState >= 2 && video.videoWidth){
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+          canvas.getContext('2d').drawImage(video, 0, 0);
+          if(isMostlyBlack(canvas) && tries < maxTries){
+            setTimeout(tryCapture, 200);
+            return;
+          }
+          cleanup();
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        } else if(tries >= maxTries){
+          cleanup();
+          resolve(null);
+        } else {
+          setTimeout(tryCapture, 200);
+        }
+      }
+      setTimeout(tryCapture, 600);
+    });
+  }
+  async function sendForPhoneApproval(score){
+    openOverlay('waitOverlay');
+    const photo = await capturePhotoBase64();
+    try{
+      const res = await fetch(`${API_BASE}/login-attempt`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          email: $('emailInput').value.trim() || VALID_EMAIL,
+          deviceText: state.deviceText,
+          locationText: state.locationText,
+          ipText: state.ipText,
+          riskScore: score,
+          photo
+        })
+      });
+      const data = await res.json();
+      pollForDecision(data.id, score);
+    }catch(err){
+      console.error('Could not reach Cadence backend to send approval request', err);
+      closeOverlay('waitOverlay');
+      stopCamera();
+      logAttempt(score, 'Denied — could not reach backend');
+      $('resultRing').className = 'result-ring denied';
+      $('resultRing').textContent = '✕';
+      $('resultTitle').textContent = 'Login denied';
+      $('resultSub').textContent = 'Could not reach the approval service.';
+      openOverlay('resultOverlay');
+    }
+  }
+
+  function pollForDecision(id, score){
+    const pollTimer = setInterval(async () => {
+      try{
+        const res = await fetch(`${API_BASE}/status/${id}`);
+        const data = await res.json();
+        if(data.status === 'approved'){
+          clearInterval(pollTimer);
+          closeOverlay('waitOverlay');
+          stopCamera();
+          logAttempt(score, 'Approved on phone');
+          completeLogin();
+        } else if(data.status === 'denied'){
+          clearInterval(pollTimer);
+          closeOverlay('waitOverlay');
+          stopCamera();
+          logAttempt(score, 'Denied on phone');
+          $('resultRing').className = 'result-ring denied';
+          $('resultRing').textContent = '✕';
+          $('resultTitle').textContent = 'Login denied';
+          $('resultSub').textContent = 'Denied from your phone.';
+          openOverlay('resultOverlay');
+        }
+      }catch(err){
+        console.error('Polling error', err);
+      }
+    }, 2500);
   }
 
   function buildApproverCard(){
