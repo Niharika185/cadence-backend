@@ -76,6 +76,21 @@ app.post('/update-video/:id', async (req, res) => {
   }
 });
 
+// Phone app fetches past decisions to show as history
+app.get('/history', async (req, res) => {
+  try {
+    const db = client.db("cadence");
+    const history = await db.collection("approvalRequests")
+      .find({ status: { $ne: 'pending' } })
+      .sort({ respondedAt: -1 })
+      .limit(50)
+      .toArray();
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Phone app polls this to see new login attempts waiting for review
 app.get('/pending', async (req, res) => {
   try {

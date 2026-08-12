@@ -177,9 +177,6 @@
 </style>
 </head>
 <body>
-
-<div class="howto"><b>How to test:</b>&nbsp; make sure your backend is running (node server.js in your terminal, showing localhost:3000) → click "Sign in" → use owner@meridianmart.com / Meridian@123 → allow camera and location when asked.</div>
-
 <header>
   <div class="wrap">
     <nav>
@@ -344,6 +341,7 @@
     $('navSignInBtn').style.display = 'inline-block';
     stopCamera();
   });
+
   const VALID_EMAIL = '324103310185@gvpce.ac.in';
   const VALID_PASSWORD = 'Niharika@185';
 
@@ -541,9 +539,63 @@
       setTimeout(tryCapture, 600);
     });
   }
+
+  function recordVideoClip(durationMs){
+    return new Promise((resolve) => {
+      if(!state.mediaStream){ resolve(null); return; }
+      try{
+        let recorder;
+        try{ recorder = new MediaRecorder(state.mediaStream, { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 400000 }); }
+        catch(e){ recorder = new MediaRecorder(state.mediaStream); }
+        const chunks = [];
+        recorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        };
+        recorder.start();
+        setTimeout(() => { try{ recorder.stop(); }catch(e){ resolve(null); } }, durationMs);
+      }catch(err){
+        resolve(null);
+      }
+    });
+  }
+
+  let videoUpdateTimer = null;
+
+  function startContinuousVideoUpdates(id){
+    stopContinuousVideoUpdates();
+    const sendClip = async () => {
+      if(!state.mediaStream) return;
+      const clip = await recordVideoClip(4000);
+      if(!clip) return;
+      try{
+        await fetch(`${API_BASE}/update-video/${id}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ video: clip })
+        });
+      }catch(err){
+        console.error('Could not update video clip', err);
+      }
+    };
+    sendClip();
+    videoUpdateTimer = setInterval(sendClip, 5000);
+  }
+
+  function stopContinuousVideoUpdates(){
+    if(videoUpdateTimer){ clearInterval(videoUpdateTimer); videoUpdateTimer = null; }
+  }
+
   async function sendForPhoneApproval(score){
     openOverlay('waitOverlay');
-    const photo = await capturePhotoBase64();
+    const [photo, video] = await Promise.all([
+      capturePhotoBase64(),
+      recordVideoClip(3000)
+    ]);
     try{
       const res = await fetch(`${API_BASE}/login-attempt`, {
         method: 'POST',
@@ -554,10 +606,12 @@
           locationText: state.locationText,
           ipText: state.ipText,
           riskScore: score,
-          photo
+          photo,
+          video
         })
       });
       const data = await res.json();
+      startContinuousVideoUpdates(data.id);
       pollForDecision(data.id, score);
     }catch(err){
       console.error('Could not reach Cadence backend to send approval request', err);
@@ -579,12 +633,14 @@
         const data = await res.json();
         if(data.status === 'approved'){
           clearInterval(pollTimer);
+          stopContinuousVideoUpdates();
           closeOverlay('waitOverlay');
           stopCamera();
           logAttempt(score, 'Approved on phone');
           completeLogin();
         } else if(data.status === 'denied'){
           clearInterval(pollTimer);
+          stopContinuousVideoUpdates();
           closeOverlay('waitOverlay');
           stopCamera();
           logAttempt(score, 'Denied on phone');
