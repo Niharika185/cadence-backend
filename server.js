@@ -120,6 +120,17 @@ app.post('/respond/:id', async (req, res) => {
   }
 });
 
+// Phone app deletes a single history entry
+app.delete('/delete/:id', async (req, res) => {
+  try {
+    const db = client.db("cadence");
+    await db.collection("approvalRequests").deleteOne({ _id: new ObjectId(req.params.id) });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Website polls this to find out what the phone decided
 app.get('/status/:id', async (req, res) => {
   try {
