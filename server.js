@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ObjectId } = require('mongodb');
+const { Expo } = require('expo-server-sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,6 +11,8 @@ app.use(express.json({ limit: '25mb' }));
 
 const uri = process.env.MONGODB_URI || "mongodb://Niharika:Niharika185@ac-tflpbjv-shard-00-00.vio0hbn.mongodb.net:27017,ac-tflpbjv-shard-00-01.vio0hbn.mongodb.net:27017,ac-tflpbjv-shard-00-02.vio0hbn.mongodb.net:27017/?ssl=true&replicaSet=atlas-xql9it-shard-0&authSource=admin&appName=Cluster0";
 const client = new MongoClient(uri);
+
+const expo = new Expo();
 
 async function connectDB() {
   try {
@@ -21,8 +24,57 @@ async function connectDB() {
 }
 connectDB();
 
+// Sends a push notification to every phone that has registered a token
+async function sendPushToAllDevices(title, body) {
+  try {
+    const db = client.db("cadence");
+    const tokenDocs = await db.collection("pushTokens").find({}).toArray();
+
+    const messages = [];
+    for (const doc of tokenDocs) {
+      if (!Expo.isExpoPushToken(doc.token)) continue;
+      messages.push({
+        to: doc.token,
+        sound: 'default',
+        title,
+        body,
+        priority: 'high',
+      });
+    }
+
+    const chunks = expo.chunkPushNotifications(messages);
+    for (const chunk of chunks) {
+      try {
+        await expo.sendPushNotificationsAsync(chunk);
+      } catch (err) {
+        console.error('Error sending a push notification chunk:', err);
+      }
+    }
+  } catch (err) {
+    console.error('Error sending push notifications:', err);
+  }
+}
+
 app.get('/', (req, res) => {
   res.send('Hello from Cadence');
+});
+
+// Phone app calls this once on startup to register its push token
+app.post('/register-push-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'token is required' });
+
+    const db = client.db("cadence");
+    await db.collection("pushTokens").updateOne(
+      { token },
+      { $set: { token, updatedAt: new Date() } },
+      { upsert: true }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Quick risk score check (used for low-risk auto-approve path)
@@ -55,6 +107,13 @@ app.post('/login-attempt', async (req, res) => {
       decision: null,
       createdAt: new Date()
     });
+
+    // Fire the push notification in the background so it doesn't slow the response
+    sendPushToAllDevices(
+      'New login attempt',
+      `A login on MeridianMart needs your approval (risk ${riskScore}/100).`
+    );
+
     res.json({ id: result.insertedId });
   } catch (err) {
     res.status(500).json({ error: err.message });
